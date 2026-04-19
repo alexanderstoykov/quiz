@@ -1,0 +1,3 @@
+User-agent: *
+Disallow: /questions.js
+Disallow: /media/

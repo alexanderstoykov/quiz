@@ -1,9 +1,10 @@
-const CACHE_VERSION = 'v1';
+const CACHE_VERSION = 'v2';
 const CACHE_NAME = 'quiz-40bt-' + CACHE_VERSION;
 
 const CORE_ASSETS = [
   './',
   './index.html',
+  './questions.js',
   './manifest.json',
   './icon-180.png',
   './icon-192.png',

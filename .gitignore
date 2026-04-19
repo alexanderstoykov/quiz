@@ -1,6 +1,8 @@
 *
 !.nojekyll
 !index.html
+!questions.js
+!robots.txt
 !manifest.json
 !sw.js
 !icon-180.png
