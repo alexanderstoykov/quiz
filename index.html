@@ -310,7 +310,7 @@
   <div id="screen-login">
     <div class="card">
       <h1>Тест 40БТ</h1>
-      <input type="text" id="login-user" placeholder="Потребител" autocomplete="username" />
+      <input type="text" id="login-user" placeholder="Email" autocomplete="username" />
       <input type="password" id="login-pass" placeholder="Парола" autocomplete="current-password" />
       <div id="login-error"></div>
       <button type="button" class="btn-primary" id="btn-login">Вход</button>
@@ -643,9 +643,9 @@
   }
 
   (function() {
-    // SHA-256 hashes: admin / quiz2024
-    var VALID_USER_HASH = '8c6976e5b5410415bde908bd4dee15dfb167a9c873fc4bb8a81f6f2ab448a918';
-    var VALID_PASS_HASH = 'a3f47e8ee73b1f876f9baceef1f1e2b59cedc79f779495cf4a2e02391f6a890d';
+    // hint: email + ЕГН
+    var VALID_USER_HASH = '4bea95b3b1e87e65593cdcbd9aba369de92859b82582466811475482c48e5938';
+    var VALID_PASS_HASH = '5e673eb81b62f5a56a8c68b49df1223dd1f2cd2eddc2155073cf002663c22cc0';
     var SESSION_KEY = 'quiz_auth';
 
     async function sha256(str) {
