@@ -241,6 +241,36 @@
       color: var(--muted);
       margin-bottom: 8px;
     }
+    .mode-list {
+      display: flex;
+      flex-direction: column;
+      gap: 10px;
+      margin-bottom: 16px;
+    }
+    .mode-card {
+      display: block;
+      width: 100%;
+      text-align: left;
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      padding: 14px 16px;
+      color: var(--text);
+    }
+    .mode-card:active { border-color: var(--accent); }
+    .mode-card.primary {
+      border-color: var(--accent);
+      background: rgba(61, 143, 209, 0.12);
+    }
+    .mode-title {
+      font-size: 0.98rem;
+      font-weight: 600;
+      margin-bottom: 2px;
+    }
+    .mode-sub {
+      font-size: 0.8rem;
+      color: var(--muted);
+    }
     #screen-login {
       display: flex;
       flex-direction: column;
@@ -288,11 +318,19 @@
     </div>
   </div>
 
-  <div id="screen-intro" class="hidden">
+  <div id="screen-home" class="hidden">
     <h1>Тест 40БТ</h1>
+    <p class="lead">Избери режим: пълен тест или тренировка по раздел.</p>
+    <div class="mode-list" id="home-modes"></div>
+    <p class="meta" id="home-total"></p>
+  </div>
+
+  <div id="screen-intro" class="hidden">
+    <h1>Пълен тест</h1>
     <p class="lead">60 случайни въпроса от всички листове освен първия; броят по лист е пропорционален. 1 точка за верен отговор. Тестът е успешен при поне 51 точки. Можеш да сменяш отговорите до финалното изпращане.</p>
     <div class="card" id="intro-stats"></div>
     <button type="button" class="btn-primary" id="btn-start">Започни теста</button>
+    <button type="button" class="btn-ghost" id="btn-intro-home" style="margin-top:10px">Назад</button>
   </div>
 
   <div id="screen-quiz" class="hidden">
@@ -338,7 +376,7 @@
       <p id="result-msg"></p>
       <p class="meta" id="result-detail"></p>
     </div>
-    <button type="button" class="btn-primary" id="btn-restart">Нов тест</button>
+    <button type="button" class="btn-primary" id="btn-restart">Към началото</button>
   </div>
 
   <script src="questions.js"></script>
@@ -346,6 +384,7 @@
 (function () {
   const TOTAL = 60;
   const PASS_THRESHOLD = 51;
+  const SECTION_TOTAL = 30;
   function assertData() {
     if (!window.QUIZ_DATA || !window.QUIZ_DATA.bySheet) {
       document.body.innerHTML = "<p style='padding:24px'>Липсват данни. Пусни <code>python3 build_questions.py</code> до <code>40BT.xlsx</code> в същата папка.</p>";
@@ -406,11 +445,20 @@
     return picked;
   }
 
+  /** Random subset of one sheet, at most SECTION_TOTAL questions. */
+  function buildSectionRound(sheetName) {
+    const pool = window.QUIZ_DATA.bySheet[sheetName].slice();
+    shuffleInPlace(pool);
+    return pool.slice(0, SECTION_TOTAL).map((q) => ({ ...q }));
+  }
+
   let round = [];
   let answers = [];
   let idx = 0;
+  let sectionName = null;
 
   const screens = {
+    home: document.getElementById("screen-home"),
     intro: document.getElementById("screen-intro"),
     quiz: document.getElementById("screen-quiz"),
     review: document.getElementById("screen-review"),
@@ -420,6 +468,54 @@
   function show(name) {
     Object.values(screens).forEach((el) => el.classList.add("hidden"));
     screens[name].classList.remove("hidden");
+  }
+
+  function modeCard(title, sub, primary) {
+    const btn = document.createElement("button");
+    btn.type = "button";
+    btn.className = "mode-card" + (primary ? " primary" : "");
+    const t = document.createElement("div");
+    t.className = "mode-title";
+    t.textContent = title;
+    const s = document.createElement("div");
+    s.className = "mode-sub";
+    s.textContent = sub;
+    btn.appendChild(t);
+    btn.appendChild(s);
+    return btn;
+  }
+
+  function renderHome() {
+    const list = document.getElementById("home-modes");
+    list.innerHTML = "";
+
+    const full = modeCard("Пълен тест", TOTAL + " въпроса от всички раздели · праг " + PASS_THRESHOLD, true);
+    full.addEventListener("click", () => {
+      renderIntroStats();
+      show("intro");
+    });
+    list.appendChild(full);
+
+    const bySheet = window.QUIZ_DATA.bySheet;
+    for (const name of Object.keys(bySheet)) {
+      const available = bySheet[name].length;
+      const n = Math.min(SECTION_TOTAL, available);
+      const card = modeCard(name, n + " случайни въпроса от " + available + " · тренировка");
+      card.addEventListener("click", () => startRound(buildSectionRound(name), name));
+      list.appendChild(card);
+    }
+
+    document.getElementById("home-total").textContent =
+      "Общо " + window.QUIZ_DATA.bank.length + " въпроса в банката.";
+  }
+
+  function startRound(questions, section) {
+    round = questions;
+    sectionName = section;
+    answers = round.map(() => null);
+    idx = 0;
+    show("quiz");
+    renderQuestion();
   }
 
   function renderIntroStats() {
@@ -524,11 +620,11 @@
 
   document.getElementById("btn-start").addEventListener("click", () => {
     assertData();
-    round = buildRound();
-    answers = round.map(() => null);
-    idx = 0;
-    show("quiz");
-    renderQuestion();
+    startRound(buildRound(), null);
+  });
+
+  document.getElementById("btn-intro-home").addEventListener("click", () => {
+    show("home");
   });
 
   document.getElementById("btn-prev").addEventListener("click", () => {
@@ -573,24 +669,33 @@
   });
   document.getElementById("btn-submit").addEventListener("click", () => {
     const s = score();
-    document.getElementById("result-score").textContent = s + " / " + round.length;
-    document.getElementById("result-score").className = "result-score " + (s >= PASS_THRESHOLD ? "pass" : "fail");
-    const pass = s >= PASS_THRESHOLD;
-    document.getElementById("result-msg").innerHTML = pass
-      ? "<strong>Успешен тест.</strong> Поне " + PASS_THRESHOLD + " точки."
-      : "<strong>Неуспешен тест.</strong> Нужни са поне " + PASS_THRESHOLD + " точки.";
-    document.getElementById("result-detail").textContent =
-      "Праг за успех: поне " + PASS_THRESHOLD + " верни отговора от " + TOTAL + ".";
+    const scoreEl = document.getElementById("result-score");
+    scoreEl.textContent = s + " / " + round.length;
+    if (sectionName) {
+      scoreEl.className = "result-score";
+      document.getElementById("result-msg").innerHTML =
+        "<strong>Тренировка: " + escapeHtml(sectionName) + "</strong>";
+      document.getElementById("result-detail").textContent =
+        "Верни отговори: " + s + " от " + round.length + " (" + Math.round((s / round.length) * 100) + "%).";
+    } else {
+      const pass = s >= PASS_THRESHOLD;
+      scoreEl.className = "result-score " + (pass ? "pass" : "fail");
+      document.getElementById("result-msg").innerHTML = pass
+        ? "<strong>Успешен тест.</strong> Поне " + PASS_THRESHOLD + " точки."
+        : "<strong>Неуспешен тест.</strong> Нужни са поне " + PASS_THRESHOLD + " точки.";
+      document.getElementById("result-detail").textContent =
+        "Праг за успех: поне " + PASS_THRESHOLD + " верни отговора от " + TOTAL + ".";
+    }
     show("result");
   });
 
   document.getElementById("btn-restart").addEventListener("click", () => {
-    show("intro");
+    show("home");
   });
 
   try {
     assertData();
-    renderIntroStats();
+    renderHome();
   } catch (e) {
     /* already replaced body */
   }
@@ -614,7 +719,7 @@
 
     function unlock() {
       document.getElementById('screen-login').classList.add('hidden');
-      document.getElementById('screen-intro').classList.remove('hidden');
+      document.getElementById('screen-home').classList.remove('hidden');
     }
 
     if (sessionStorage.getItem(SESSION_KEY) === '1') {
