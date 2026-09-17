@@ -3,7 +3,7 @@
 <head>
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
-  <title>Тест 40БТ — 100 въпроса</title>
+  <title>Тест 40БТ — 60 въпроса</title>
   <meta name="apple-mobile-web-app-capable" content="yes" />
   <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
   <meta name="apple-mobile-web-app-title" content="40БТ" />
@@ -241,35 +241,6 @@
       color: var(--muted);
       margin-bottom: 8px;
     }
-    .btn-reveal {
-      flex-shrink: 0;
-      align-self: flex-start;
-      margin: 0;
-      padding: 2px 6px;
-      min-height: 0;
-      line-height: 1.25;
-      font: inherit;
-      font-size: 0.65rem;
-      font-weight: 600;
-      letter-spacing: 0.02em;
-      cursor: pointer;
-      border-radius: 4px;
-      border: 1px dashed var(--muted);
-      background: rgba(0, 0, 0, 0.2);
-      color: var(--muted);
-      white-space: nowrap;
-    }
-    .btn-reveal:active { opacity: 0.85; }
-    .btn-reveal.is-on {
-      border-style: solid;
-      border-color: var(--ok);
-      color: var(--ok);
-      background: rgba(61, 204, 122, 0.12);
-    }
-    .opt.is-reveal {
-      border-color: var(--ok);
-      background: rgba(61, 204, 122, 0.12);
-    }
     #screen-login {
       display: flex;
       flex-direction: column;
@@ -319,7 +290,7 @@
 
   <div id="screen-intro" class="hidden">
     <h1>Тест 40БТ</h1>
-    <p class="lead">100 случайни въпроса от всички листове освен първия; броят по лист е пропорционален. 1 точка за верен отговор. Тестът е успешен при повече от 90 точки. Можеш да сменяш отговорите до финалното изпращане.</p>
+    <p class="lead">60 случайни въпроса от всички листове освен първия; броят по лист е пропорционален. 1 точка за верен отговор. Тестът е успешен при поне 51 точки. Можеш да сменяш отговорите до финалното изпращане.</p>
     <div class="card" id="intro-stats"></div>
     <button type="button" class="btn-primary" id="btn-start">Започни теста</button>
   </div>
@@ -337,7 +308,6 @@
       <div class="sheet-tag" id="quiz-sheet"></div>
       <div class="q-header-row">
         <div class="q-text" id="quiz-question"></div>
-        <button type="button" class="btn-reveal" id="btn-reveal" title="Покажи / скрий верния отговор">Покажи</button>
       </div>
       <div class="q-images" id="quiz-images" hidden></div>
       <div class="options" id="quiz-options"></div>
@@ -374,8 +344,8 @@
   <script src="questions.js"></script>
   <script>
 (function () {
-  const TOTAL = 100;
-  const PASS_THRESHOLD = 90;
+  const TOTAL = 60;
+  const PASS_THRESHOLD = 51;
   function assertData() {
     if (!window.QUIZ_DATA || !window.QUIZ_DATA.bySheet) {
       document.body.innerHTML = "<p style='padding:24px'>Липсват данни. Пусни <code>python3 build_questions.py</code> до <code>40BT.xlsx</code> в същата папка.</p>";
@@ -438,7 +408,6 @@
 
   let round = [];
   let answers = [];
-  let revealed = [];
   let idx = 0;
 
   const screens = {
@@ -500,11 +469,10 @@
     const opts = document.getElementById("quiz-options");
     opts.innerHTML = "";
     const sel = answers[idx];
-    const showReveal = revealed[idx];
     for (let o = 0; o < q.options.length; o++) {
       const id = "opt-" + idx + "-" + o;
       const lab = document.createElement("label");
-      lab.className = "opt" + (showReveal && o === q.correctIndex ? " is-reveal" : "");
+      lab.className = "opt";
       lab.setAttribute("for", id);
       const inp = document.createElement("input");
       inp.type = "radio";
@@ -521,10 +489,6 @@
       lab.appendChild(span);
       opts.appendChild(lab);
     }
-    var revBtn = document.getElementById("btn-reveal");
-    revBtn.textContent = showReveal ? "Скрий" : "Покажи";
-    revBtn.classList.toggle("is-on", showReveal);
-    revBtn.setAttribute("aria-pressed", showReveal ? "true" : "false");
     document.getElementById("btn-prev").disabled = idx === 0;
     document.getElementById("btn-next").disabled = idx >= n - 1;
   }
@@ -562,7 +526,6 @@
     assertData();
     round = buildRound();
     answers = round.map(() => null);
-    revealed = round.map(() => false);
     idx = 0;
     show("quiz");
     renderQuestion();
@@ -596,10 +559,6 @@
       }
     }
   });
-  document.getElementById("btn-reveal").addEventListener("click", () => {
-    revealed[idx] = !revealed[idx];
-    renderQuestion();
-  });
   document.getElementById("btn-overview").addEventListener("click", () => {
     renderReviewGrid();
     show("review");
@@ -615,13 +574,13 @@
   document.getElementById("btn-submit").addEventListener("click", () => {
     const s = score();
     document.getElementById("result-score").textContent = s + " / " + round.length;
-    document.getElementById("result-score").className = "result-score " + (s > PASS_THRESHOLD ? "pass" : "fail");
-    const pass = s > PASS_THRESHOLD;
+    document.getElementById("result-score").className = "result-score " + (s >= PASS_THRESHOLD ? "pass" : "fail");
+    const pass = s >= PASS_THRESHOLD;
     document.getElementById("result-msg").innerHTML = pass
-      ? "<strong>Успешен тест.</strong> Над " + PASS_THRESHOLD + " точки."
-      : "<strong>Неуспешен тест.</strong> Нужни са повече от " + PASS_THRESHOLD + " точки.";
+      ? "<strong>Успешен тест.</strong> Поне " + PASS_THRESHOLD + " точки."
+      : "<strong>Неуспешен тест.</strong> Нужни са поне " + PASS_THRESHOLD + " точки.";
     document.getElementById("result-detail").textContent =
-      "Праг за успех: повече от " + PASS_THRESHOLD + " верни отговора от " + TOTAL + ".";
+      "Праг за успех: поне " + PASS_THRESHOLD + " верни отговора от " + TOTAL + ".";
     show("result");
   });
 
