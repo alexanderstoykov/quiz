@@ -1,4 +1,4 @@
-const CACHE_VERSION = 'v4';
+const CACHE_VERSION = 'v5';
 const CACHE_NAME = 'quiz-40bt-' + CACHE_VERSION;
 
 const CORE_ASSETS = [

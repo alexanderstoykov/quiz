@@ -241,6 +241,47 @@
       color: var(--muted);
       margin-bottom: 8px;
     }
+    .wrong-head {
+      font-size: 0.95rem;
+      font-weight: 600;
+      margin: 18px 0 10px;
+    }
+    .wrong-card .q-text {
+      font-size: 0.92rem;
+      margin-bottom: 10px;
+    }
+    .wrong-num {
+      font-size: 0.72rem;
+      color: var(--muted);
+      margin-bottom: 6px;
+    }
+    .ans-row {
+      display: flex;
+      gap: 8px;
+      align-items: flex-start;
+      font-size: 0.88rem;
+      padding: 8px 10px;
+      border-radius: 8px;
+      border: 1px solid var(--border);
+      margin-bottom: 6px;
+    }
+    .ans-row:last-child { margin-bottom: 0; }
+    .ans-row .tag {
+      flex-shrink: 0;
+      font-size: 0.72rem;
+      font-weight: 600;
+      padding-top: 2px;
+    }
+    .ans-bad {
+      border-color: var(--bad);
+      background: rgba(232, 93, 93, 0.1);
+    }
+    .ans-bad .tag { color: var(--bad); }
+    .ans-good {
+      border-color: var(--ok);
+      background: rgba(61, 204, 122, 0.12);
+    }
+    .ans-good .tag { color: var(--ok); }
     .mode-list {
       display: flex;
       flex-direction: column;
@@ -376,6 +417,7 @@
       <p id="result-msg"></p>
       <p class="meta" id="result-detail"></p>
     </div>
+    <div id="result-wrong"></div>
     <button type="button" class="btn-primary" id="btn-restart">Към началото</button>
   </div>
 
@@ -610,6 +652,71 @@
       unanswered ? "Без отговор: " + unanswered + " въпроса." : "Всички въпроси имат избран отговор.";
   }
 
+  function ansRow(label, text, cls) {
+    const row = document.createElement("div");
+    row.className = "ans-row " + cls;
+    const tag = document.createElement("span");
+    tag.className = "tag";
+    tag.textContent = label;
+    const span = document.createElement("span");
+    span.textContent = text;
+    row.appendChild(tag);
+    row.appendChild(span);
+    return row;
+  }
+
+  function renderWrong() {
+    const wrap = document.getElementById("result-wrong");
+    wrap.innerHTML = "";
+    const wrong = [];
+    for (let i = 0; i < round.length; i++) {
+      if (answers[i] !== round[i].correctIndex) wrong.push(i);
+    }
+    if (!wrong.length) return;
+
+    const head = document.createElement("div");
+    head.className = "wrong-head";
+    head.textContent = "Грешни отговори (" + wrong.length + ")";
+    wrap.appendChild(head);
+
+    for (const i of wrong) {
+      const q = round[i];
+      const card = document.createElement("div");
+      card.className = "card wrong-card";
+
+      const num = document.createElement("div");
+      num.className = "wrong-num";
+      num.textContent = "Въпрос " + (i + 1) + " · " + q.sheet;
+      card.appendChild(num);
+
+      const text = document.createElement("div");
+      text.className = "q-text";
+      text.textContent = q.question;
+      card.appendChild(text);
+
+      if (q.images && q.images.length) {
+        const imgWrap = document.createElement("div");
+        imgWrap.className = "q-images";
+        for (const src of q.images) {
+          const im = document.createElement("img");
+          im.src = src;
+          im.alt = "";
+          im.loading = "lazy";
+          im.decoding = "async";
+          imgWrap.appendChild(im);
+        }
+        card.appendChild(imgWrap);
+      }
+
+      const given = answers[i];
+      card.appendChild(
+        ansRow("Твой:", given === null || given === undefined ? "Без отговор" : q.options[given] || "", "ans-bad")
+      );
+      card.appendChild(ansRow("Верен:", q.options[q.correctIndex] || "", "ans-good"));
+      wrap.appendChild(card);
+    }
+  }
+
   function score() {
     let s = 0;
     for (let i = 0; i < round.length; i++) {
@@ -686,6 +793,8 @@
       document.getElementById("result-detail").textContent =
         "Праг за успех: поне " + PASS_THRESHOLD + " верни отговора от " + TOTAL + ".";
     }
+    renderWrong();
+    window.scrollTo(0, 0);
     show("result");
   });
 
