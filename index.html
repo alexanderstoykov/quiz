@@ -670,7 +670,9 @@
     wrap.innerHTML = "";
     const wrong = [];
     for (let i = 0; i < round.length; i++) {
-      if (answers[i] !== round[i].correctIndex) wrong.push(i);
+      const given = answers[i];
+      if (given === null || given === undefined) continue;
+      if (given !== round[i].correctIndex) wrong.push(i);
     }
     if (!wrong.length) return;
 
@@ -708,10 +710,7 @@
         card.appendChild(imgWrap);
       }
 
-      const given = answers[i];
-      card.appendChild(
-        ansRow("Твой:", given === null || given === undefined ? "Без отговор" : q.options[given] || "", "ans-bad")
-      );
+      card.appendChild(ansRow("Твой:", q.options[answers[i]] || "", "ans-bad"));
       card.appendChild(ansRow("Верен:", q.options[q.correctIndex] || "", "ans-good"));
       wrap.appendChild(card);
     }
